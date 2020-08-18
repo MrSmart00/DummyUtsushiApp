@@ -1,0 +1,24 @@
+#!/bin/bash
+
+ROOT=$(cd $(dirname $0)/../;pwd)
+
+. ./config
+echo PRODUCT_NAME: $PRODUCT_NAME
+echo OPENAPI_JSON_URL: $OPENAPI_JSON_URL
+
+if [ -n "$OPENAPI_JSON_URL" ]; then
+  if [ -n "$PRODUCT_NAME" ]; then
+    sed -e "s/__PROJECTNAME__/$PRODUCT_NAME/" ./.scripts/resources/swift5/.template.yml > ./.scripts/resources/swift5/template.yml
+  fi
+
+  curl $OPENAPI_JSON_URL > .openapi.json
+  rm -rf ${ROOT}/*.xcodeproj
+  rm -rf ${ROOT}/Sources
+  mint run MrSmart00/SwagGen swaggen generate .openapi.json --template .resources/swift5 --destination Sources
+  rm -rf .openapi.json
+  mint run nicklockwood/SwiftFormat swiftformat Sources --swiftversion 5.1
+  swift package generate-xcodeproj
+else
+  echo "[ERROR] Missing openapi.json url."
+  exit 1
+fi
